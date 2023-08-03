@@ -1,31 +1,30 @@
 package com.example.snake;
 
-import com.almasb.fxgl.app.GameController;
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.*;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import java.io.IOException;
-import java.lang.reflect.Array;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
-import javafx.util.Duration;
 public class Snake extends Application {
-    private final GameParameters parameters = GameParameters.GetGamePatametersInstace();
-    private final int WIDTH=parameters.snakeBodyBlockWigth*parameters.widthOfMap;
-    private  final int HEIGHT=parameters.snakeBodyBlockWigth*parameters.heightOfMap;
-    private  final Position food=new Position();
-    private  final LinkedList<Position> snake=new LinkedList<>();
-    private final  FieldState[][] field=new FieldState[parameters.widthOfMap][parameters.heightOfMap];
+    //Basically one unit
+    public final int snakeBodyBlockWidth=20;
+    public final int widthOfMap=50;
+    public final int heightOfMap=50;
+
+    private final int WIDTH=snakeBodyBlockWidth*widthOfMap;
+    private final int HEIGHT=snakeBodyBlockWidth*heightOfMap;
+    private  Position food=new Position();
+    private  LinkedList<Position> snake=new LinkedList<>();
+    private  FieldState[][] field=new FieldState[widthOfMap][heightOfMap];
+    private  List<Position> possibleFoodPosition=new ArrayList<>();
+
 
     @Override
     public void start(Stage stage){
@@ -39,32 +38,27 @@ public class Snake extends Application {
         stage.show();
         GraphicsContext graphicsContext= canvas.getGraphicsContext2D();
 
-        generateField();
+        startGame();
+
         drawField(graphicsContext);
 
 
     }
-    private void updateGameState(GraphicsContext gc){
-        gc.setFill(Color.LIGHTGREEN);
-        gc.fillRect(0,0,WIDTH,HEIGHT);
-        gc.setFill(Color.GRAY);
-        gc.fillRect(0, parameters.snakeBodyBlockWigth*25, parameters.snakeBodyBlockWigth, parameters.snakeBodyBlockWigth);
-    }
-    private void drawField(GraphicsContext gc){
-        for (int i=0 ; i< parameters.widthOfMap;i++) {
-            for (int j=0 ; j< parameters.heightOfMap;j++) {
+   private void drawField(GraphicsContext gc){
+        for (int i=0 ; i< widthOfMap;i++) {
+            for (int j=0 ; j< heightOfMap;j++) {
                 switch (field[i][j]){
                     case empty:
                         gc.setFill(Color.LIGHTGREEN);
-                        gc.fillRect(i*parameters.snakeBodyBlockWigth,j*parameters.snakeBodyBlockWigth,parameters.snakeBodyBlockWigth,parameters.snakeBodyBlockWigth);
+                        gc.fillRect(i*snakeBodyBlockWidth,j*snakeBodyBlockWidth,snakeBodyBlockWidth,snakeBodyBlockWidth);
                         break;
                     case snake:
-                        gc.setFill(Color.BLACK);
-                        gc.fillRect(i*parameters.snakeBodyBlockWigth,j*parameters.snakeBodyBlockWigth,parameters.snakeBodyBlockWigth,parameters.snakeBodyBlockWigth);
+                        gc.setFill(Color.DARKGREEN);
+                        gc.fillRect(i*snakeBodyBlockWidth,j*snakeBodyBlockWidth,snakeBodyBlockWidth,snakeBodyBlockWidth);
                         break;
                     case food:
                         gc.setFill(Color.RED);
-                        gc.fillRect(i*parameters.snakeBodyBlockWigth,j*parameters.snakeBodyBlockWigth,parameters.snakeBodyBlockWigth,parameters.snakeBodyBlockWigth);
+                        gc.fillOval(i*snakeBodyBlockWidth,j*snakeBodyBlockWidth,snakeBodyBlockWidth,snakeBodyBlockWidth);
                         break;
                     default:
                         break;
@@ -74,13 +68,50 @@ public class Snake extends Application {
     }
     private void generateField(){
         //clearing field
+        /*
         for (FieldState[] row : field)
             Arrays.fill(row, FieldState.empty);
+        */
         //adding snake
 
+        //if snake head= apple
+        addApple();
+
+
+    }
+    private void startGame(){
+        //reset field
+        for (FieldState[] row : field)
+            Arrays.fill(row, FieldState.empty);
+        //reset snake
+        snake.clear();
+        snake.add(new Position(1,25));
+        snake.add(new Position(2,25));
+        addSnake();
+        //add apple
+        addApple();
+    }
+    private void addSnake(){
+        for(Position p:snake){
+            field[p.horizontal][p.vertical]=FieldState.snake;
+        }
+    }
+    private void addApple(){
         //getting list of empty fields
+        possibleFoodPosition.clear();
+        for(int i=0;i< widthOfMap;i++ ){
+            for(int j=0;j< heightOfMap;j++) {
+                if(field[i][j]==FieldState.empty){
+                    possibleFoodPosition.add(new Position(i,j));
+                }
+            }
+        }
+        // gets int in range [0,possibleFoodPosition-1)
+        int randomIndex = (int) Math.floor(Math.random() * (possibleFoodPosition.size()-1 ));
+        food=possibleFoodPosition.get(randomIndex);
 
         //adding an apple
+        field[food.horizontal][food.vertical]=FieldState.food;
     }
     public static void main(String[] args) {
         launch();
