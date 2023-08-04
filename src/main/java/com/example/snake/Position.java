@@ -11,4 +11,7 @@ public class Position {
     }
     public Position() {
     }
+    public boolean equals(Position p){
+        return this.horizontal == p.horizontal && this.vertical == p.vertical;
+    }
 }

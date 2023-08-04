@@ -1,11 +1,18 @@
 package com.example.snake;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,8 +27,14 @@ public class Snake extends Application {
 
     private final int WIDTH=snakeBodyBlockWidth*widthOfMap;
     private final int HEIGHT=snakeBodyBlockWidth*heightOfMap;
+    private final double GAMELOOPSPEED=100;
+    private Direction direction=Direction.right;
+    //food
     private  Position food=new Position();
+    private boolean isAppeEaten=false;
+    //snake
     private  LinkedList<Position> snake=new LinkedList<>();
+    //field
     private  FieldState[][] field=new FieldState[widthOfMap][heightOfMap];
     private  List<Position> possibleFoodPosition=new ArrayList<>();
 
@@ -37,14 +50,85 @@ public class Snake extends Application {
         stage.setScene(scene);
         stage.show();
         GraphicsContext graphicsContext= canvas.getGraphicsContext2D();
+        //get key input
+        scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent keyEvent) {
+                KeyCode code = keyEvent.getCode();
+                switch (code){
+                    case RIGHT:
+                        if(direction!=Direction.left){
+                            direction=Direction.right;
+                        }
+                        break;
+                    case LEFT:
+                        if(direction!=Direction.right){
+                            direction=Direction.left;
+                        }
+                        break;
+                    case UP:
+                        if(direction!=Direction.bottom){
+                            direction=Direction.top;
+                        }
+                        break;
+                    case DOWN:
+                        if(direction!=Direction.top){
+                            direction=Direction.bottom;
+                        }
+                        break;
+                }
+            }
+        });
 
         startGame();
+        Timeline timeline=new Timeline(new KeyFrame(Duration.millis(GAMELOOPSPEED), e->GameLoop(graphicsContext)));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        timeline.play();
 
-        drawField(graphicsContext);
 
 
     }
-   private void drawField(GraphicsContext gc){
+    private void GameLoop(GraphicsContext gc){
+
+        //draw field
+        drawField(gc);
+
+        //checks if the apple is eaten
+        isAppeEaten=snake.getFirst().equals(food);
+
+        //change snake position snake
+        switch (direction){
+            case left:
+                snake.addFirst(new Position(snake.getFirst().horizontal-1,snake.getFirst().vertical));
+                break;
+            case right:
+                snake.addFirst(new Position(snake.getFirst().horizontal+1,snake.getFirst().vertical));
+                break;
+            case top :
+                snake.addFirst(new Position(snake.getFirst().horizontal,snake.getFirst().vertical-1));
+                break;
+            case bottom:
+                snake.addFirst(new Position(snake.getFirst().horizontal,snake.getFirst().vertical+1));
+                break;
+        }
+        //if snake has eaten an apple make it longer
+        if(!isAppeEaten) {
+            field[snake.getLast().horizontal][snake.getLast().vertical] = FieldState.empty;
+            snake.removeLast();
+        }
+        addSnake();
+
+        //check if the game ends
+
+        // add apple if it's eaten
+        if(isAppeEaten) {
+            isAppeEaten = false;
+            addApple();
+        }
+
+
+    }
+    private void drawField(GraphicsContext gc){
         for (int i=0 ; i< widthOfMap;i++) {
             for (int j=0 ; j< heightOfMap;j++) {
                 switch (field[i][j]){
@@ -66,20 +150,8 @@ public class Snake extends Application {
             }
         }
     }
-    private void generateField(){
-        //clearing field
-        /*
-        for (FieldState[] row : field)
-            Arrays.fill(row, FieldState.empty);
-        */
-        //adding snake
-
-        //if snake head= apple
-        addApple();
-
-
-    }
     private void startGame(){
+        direction=Direction.right;
         //reset field
         for (FieldState[] row : field)
             Arrays.fill(row, FieldState.empty);
