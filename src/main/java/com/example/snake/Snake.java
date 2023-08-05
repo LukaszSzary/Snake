@@ -8,9 +8,13 @@ import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.*;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -22,12 +26,17 @@ import java.util.List;
 public class Snake extends Application {
     //Basically one unit
     public final int snakeBodyBlockWidth=20;
+    //how many units map has
     public final int widthOfMap=50;
     public final int heightOfMap=50;
 
     private final int WIDTH=snakeBodyBlockWidth*widthOfMap;
     private final int HEIGHT=snakeBodyBlockWidth*heightOfMap;
     private final double GAMELOOPSPEED=100;
+    private final String gameOverText="Game Over \n Press ENTER to restart";
+    private Timeline timeline;
+    private Text text = new Text(gameOverText);
+    private boolean gameOver=false;
     private Direction direction=Direction.right;
     //food
     private  Position food=new Position();
@@ -76,22 +85,34 @@ public class Snake extends Application {
                             direction=Direction.bottom;
                         }
                         break;
+                    case ENTER:
+                        if(gameOver) {
+                            startGame(graphicsContext);
+                            timeline.play();
+                        }
+                        break;
                 }
             }
         });
 
-        startGame();
-        Timeline timeline=new Timeline(new KeyFrame(Duration.millis(GAMELOOPSPEED), e->GameLoop(graphicsContext)));
+
+        //add text field
+        text = new Text(gameOverText);
+        text.setX((WIDTH/2)-gameOverText.length()-50);
+        text.setY(HEIGHT/2);
+        text.setTextAlignment(TextAlignment.CENTER);
+        text.setFont(new Font(20));
+        root.getChildren().add(text);
+        text.setVisible(false);
+        startGame(graphicsContext);
+
+        //game loop
+        timeline=new Timeline(new KeyFrame(Duration.millis(GAMELOOPSPEED), e->GameLoop(graphicsContext)));
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
-
-
     }
     private void GameLoop(GraphicsContext gc){
-
-        //draw field
-        drawField(gc);
 
         //checks if the apple is eaten
         isAppeEaten=snake.getFirst().equals(food);
@@ -116,15 +137,44 @@ public class Snake extends Application {
             field[snake.getLast().horizontal][snake.getLast().vertical] = FieldState.empty;
             snake.removeLast();
         }
-        addSnake();
 
         //check if the game ends
-
-        // add apple if it's eaten
-        if(isAppeEaten) {
-            isAppeEaten = false;
-            addApple();
+        //if snake hit wall
+        gameOver=(snake.getFirst().horizontal==widthOfMap||snake.getFirst().horizontal==-1||snake.getFirst().vertical==widthOfMap||snake.getFirst().vertical==-1);
+        //if snake max length
+        if(!gameOver && snake.size()==widthOfMap*heightOfMap){
+            gameOver=true;
         }
+        //if snake bite itself
+        for (int i=0;i<snake.size()-1;i++) {
+            if(gameOver)break;
+            for(int j=i+1;j<snake.size();j++){
+                gameOver= snake.get(i).equals(snake.get(j));
+                if(gameOver)break;
+            }
+
+        }
+
+        //adds apple and snake to field and prints it
+        if(!gameOver){
+            addSnake();
+            // add apple if it's eaten
+            if(isAppeEaten) {
+                isAppeEaten = false;
+                gameOver=true;
+                addApple();
+            }
+
+            //draw field
+            drawField(gc);
+
+        }
+        else{
+            timeline.stop();
+            text.setVisible(true);
+        }
+
+
 
 
     }
@@ -150,11 +200,14 @@ public class Snake extends Application {
             }
         }
     }
-    private void startGame(){
+    private void startGame(GraphicsContext gc){
         direction=Direction.right;
+        text.setVisible(false);
+        gameOver=false;
         //reset field
         for (FieldState[] row : field)
             Arrays.fill(row, FieldState.empty);
+        drawField(gc);
         //reset snake
         snake.clear();
         snake.add(new Position(1,25));
